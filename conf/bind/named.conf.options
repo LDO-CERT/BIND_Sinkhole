@@ -1,0 +1,62 @@
+options {
+	directory "/var/cache/bind";
+
+	// If there is a firewall between you and nameservers you want
+	// to talk to, you may need to fix the firewall to allow multiple
+	// ports to talk.  See http://www.kb.cert.org/vuls/id/800113
+
+	// If your ISP provided one or more IP addresses for stable 
+	// nameservers, you probably want to use them as forwarders.  
+	// Uncomment the following block, and insert the addresses replacing 
+	// the all-0's placeholder.
+
+	 forwarders {
+		8.8.4.4;
+		1.1.1.1;
+		8.8.8.8;
+	 };
+
+	//========================================================================
+	// If BIND logs error messages about the root key being expired,
+	// you will need to update your keys.  See https://www.isc.org/bind-keys
+	//========================================================================
+	dnssec-validation auto;
+
+	auth-nxdomain no;    # conform to RFC1035
+	listen-on-v6 { none; };
+
+	querylog yes;
+
+        allow-recursion {
+		any;
+        };
+
+	dnstap { all; };
+	// dnstap { auth; resolver query; resolver response; };
+
+	/* where to capture to: file or unix (socket) */
+	//dnstap-output file "/etc/bind/named.tap";
+	dnstap-output unix "/etc/bind/dnstap.sock";
+
+	dnstap-identity "tigger";
+	dnstap-version "bind-9.11";
+
+};
+
+logging {
+	channel query_log {
+	    file "/var/log/query.log";
+	    severity info;
+//	    severity debug 3;
+	    print-time yes;
+	    print-severity yes;
+	    print-category yes;
+	};
+
+	//category queries { query_log;  };
+	category queries { null;  };
+	category security { null; };
+	category lame-servers { null; };
+	category config { null; };
+};
+
