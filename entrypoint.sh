@@ -5,17 +5,16 @@ BIND_DATA_DIR=${DATA_DIR}/bind
 SSMTP_DATA_DIR=${DATA_DIR}/ssmtp
 
 create_ssmtp_dir() {
-  mkdir -p ${SSMTP_DATA_DIR}
 
-  # populate default bind configuration if it does not exist
-  if [ -d ${SSMTP_DATA_DIR} ]; then
-    mv /etc/ssmtp/* ${SSMTP_DATA_DIR}
+  if [ ! -d /etc/ssmtp.old ]; then 
+	  #mkdir -p ${SSMTP_DATA_DIR}
+
+	  if [ ! -d ${SSMTP_DATA_DIR} ]; then
+	    cp -r /etc/ssmtp/ ${SSMTP_DATA_DIR}
+	  fi
+	  mv /etc/ssmtp /etc/ssmtp.old
+	  ln -sf ${SSMTP_DATA_DIR} /etc/ssmtp
   fi
-  rm -rf /etc/ssmtp
-  ln -sf ${SSMTP_DATA_DIR} /etc/ssmtp
-#  chmod -R 0775 ${BIND_DATA_DIR}
-#  chown -R ${BIND_USER}:${BIND_USER} ${BIND_DATA_DIR}
-
 }
 
 create_bind_data_dir() {
@@ -26,11 +25,11 @@ create_bind_data_dir() {
     mv /etc/bind ${BIND_DATA_DIR}/etc
   fi
 
-  if grep -q named.conf.sinkhole ${BIND_DATA_DIR}/etc/named.conf.local ; then
-	echo "found named.conf.sinkhole in ${BIND_DATA_DIR}/etc/named.conf.local" 
-  else
-	echo 'include "/etc/bind/named.conf.sinkhole";' >> ${BIND_DATA_DIR}/etc/named.conf.local
-  fi
+#  if grep -q named.conf.sinkhole ${BIND_DATA_DIR}/etc/named.conf.local ; then
+#	echo "found named.conf.sinkhole in ${BIND_DATA_DIR}/etc/named.conf.local" 
+#  else
+#	echo 'include "/etc/bind/named.conf.sinkhole";' >> ${BIND_DATA_DIR}/etc/named.conf.local
+#  fi
 
   rm -rf /etc/bind
   ln -sf ${BIND_DATA_DIR}/etc /etc/bind
