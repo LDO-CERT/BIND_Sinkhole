@@ -7,11 +7,6 @@ LABEL Description="Bind Sinkhole from MISP Docker Image (dnstap enabled)"
 ENV BIND_USER=bind \
     DATA_DIR=/data
 
-ENV http_proxy 'http://proxy.mal.cert.lab:3128'
-ENV https_proxy 'http://proxy.mal.cert.lab:3128'
-ENV HTTP_PROXY 'http://proxy.mal.cert.lab:3128'
-ENV HTTPS_PROXY 'http://proxy.mal.cert.lab:3128'
-
 ENV DEBIAN_FRONTEND noninteractive
 
 ## 1/ Minimal ubuntu install
