@@ -9,27 +9,30 @@ and sinkhole domain list from MISP https://github.com/MISP/MISP
 
 :: For build
 
+```
 git clone https://github.com/LDO-CERT/bind_sinkhole
 cd bind_sinkhole
 docker build -t bind_sinkhole .
+```
 
 :: For run
 
-
+```
 docker run --name bind_sinkhole -d --restart=always \
   --publish 53:53/tcp --publish 53:53/udp \
   --volume /opt/bind_sinkhole:/data \
   bind_sinkhole
-
+```
 
 :: Persistence
 
 For the BIND to preserve its state across container shutdown and startup you should mount a volume at /data.
 SELinux users should update the security context of the host mountpoint so that it plays nicely with Docker:
 
+```
 mkdir -p /opt/bind_sinkhole
 chcon -Rt svirt_sandbox_file_t /opt/bins_sinkhole
-
+```
 
 :: Sinkhole from MISP data
 
