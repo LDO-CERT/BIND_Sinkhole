@@ -2,7 +2,7 @@
 
 source /etc/bind/misp.config
 
-// non toccare!! :-)
+# non toccare!! :-)
 DOMAIN_URL="/attributes/text/download/domain"
 
 
