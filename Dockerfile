@@ -68,7 +68,7 @@ RUN \
 ## 2/ Dependencies
 
 RUN echo "Installing dependecies"
-RUN apt-get install -y cron ssmtp
+RUN apt-get install -y cron ssmtp dnstap-ldns
 RUN apt-get clean
 
 ## 3/ bind_sinkhole code
