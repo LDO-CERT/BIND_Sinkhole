@@ -2,6 +2,10 @@
 
 source /etc/bind/misp.config
 
+// non toccare!! :-)
+DOMAIN_URL="/attributes/text/download/domain"
+
+
 if [ -z $AUTH_KEY ]; then
         logger -it misp_exporter "Disabled";
         exit 0;
