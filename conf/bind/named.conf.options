@@ -44,6 +44,7 @@ options {
 };
 
 logging {
+/*
 	channel query_log {
 	    file "/var/log/query.log";
 	    severity info;
@@ -52,7 +53,7 @@ logging {
 	    print-severity yes;
 	    print-category yes;
 	};
-
+*/
 	//category queries { query_log;  };
 	category queries { null;  };
 	category security { null; };
