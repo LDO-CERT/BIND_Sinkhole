@@ -40,3 +40,6 @@ Edit conf/sinkhole/misp.config.dist before building docker images OR edit
 /opt/bind_sinkhole/bind/etc/misp.config with your auth_key (from misp) and misp FQDN.
 
 
+:: DNStap Reader
+
+dnstap_reader contains developing software for read dnstap file (python)
