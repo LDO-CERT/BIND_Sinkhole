@@ -5,6 +5,8 @@ import struct
 CONTROL_ACCEPT = 0x01
 CONTROL_START = 0x02
 CONTROL_STOP = 0x03
+CONTROL_READY = 0x04
+CONTROL_FINISH = 0x05
 
 CONTROL_FIELD_CONTENT_TYPE = 0x01
 
@@ -42,7 +44,14 @@ class reader(object):
         return self
 
     def read_be32(self):
-        return be32.unpack(self.fileobj.read(4))[0]
+        d = self.fileobj.read(4)
+        if len(d) != 4:
+ #         print(str('len fail: ')+str(len(d)))
+          return 0
+        else:
+          return be32.unpack(d)[0]
+
+#        return be32.unpack(self.fileobj.read(4))[0]
 
     def read_control_start(self):
         escape = self.read_be32()
@@ -74,6 +83,8 @@ class reader(object):
                 return True
             else:
                 return False
+        else:
+           return True
 
     def __next__(self):
         if self.stopped:
