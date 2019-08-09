@@ -9,16 +9,27 @@ from __future__ import print_function
 from dnstap_pb2 import *
 from pprint import pprint
 from var_dump import var_dump
+from daemonize import Daemonize
 import getopt, sys, datetime
 import os, socket, io
 import framestream
 import ipaddress
 import dns.message
+import syslog
+
+def log_message(tosyslog,message):
+   if tosyslog:
+      syslog.syslog(message)
+   else:
+     print(message)
 
 def usage():
+    print("Usage:", sys.argv[0], "[-d][-v][-l] -f dnstap_file | -s socket_file")
     print("")
-    print("Usage:", sys.argv[0], "[-d][-v] -f dnstap_file | -s socket_file")
-    print("")
+    print("Options:")
+    print(" -d\tDebug mode")
+    print(" -v\tVerbose mode")
+    print(" -l\tSend output to syslog (demonize) ** Only with socket")
     print("Default mode show only Client Query e Client Response, use -v for show all dns query")
     print("")
     print("Quiet text output format mnemonics:")
@@ -88,18 +99,21 @@ def parse_frame(frame):
 
     if dnstap_data.message.type == 5: ## CLIENT_QUERY
         query = dns.message.from_wire(dnstap_data.message.query_message)
+        #identity = query.identity
 #        var_dump(query)
 
         for question in query.question:
-          print(str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S')),end='')
-          print(str(' DNS ')+str(get_query_type(dnstap_data.message.type))+str(" "),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port),end='')
-          print(str(' -> '),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port),end='')
-          print(str(' Id: #')+str(query.id),end='')
-          print(str(' Flags: '),end='')
-          print(str(dns.flags.to_text(query.flags)),end='')
-          print(' Question: '+question.to_text())
+          msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+          #msg +=  str(' DNS')
+          msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+          msg +=  str(' -> ')
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+          msg +=  str(' Id: #')+str(query.id)
+          msg +=  str(' Flags: ')
+          msg +=  str(dns.flags.to_text(query.flags))
+          msg +=  ' Question: '+question.to_text()
+          log_message(tosyslog,msg)
 
         if debug:
            print(print_dnsflag_fromhex(query.flags))
@@ -107,125 +121,156 @@ def parse_frame(frame):
     elif dnstap_data.message.type == 6: ## CLIENT_RESPONSE
         query = dns.message.from_wire(dnstap_data.message.response_message)
 
-        for question in query.question:
-          print(str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S')),end='')
-          print(str(' DNS ')+str(get_query_type(dnstap_data.message.type))+str(" "),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port),end='')
-          print(str(' -> '),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port),end='')
-          print(str(' Id: #')+str(query.id),end='')
-          print(str(' Flags: '),end='')
-          print(str(dns.flags.to_text(query.flags)),end='')
-          print(' Question: '+question.to_text())
+#        for question in query.question:
+#          msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+#          #msg +=  str(' DNS')
+#          msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+#          msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+#          msg +=  str(' -> ')
+#          msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+#          msg +=  str(' Id: #')+str(query.id)
+#          msg +=  str(' Flags: ')
+#          msg +=  str(dns.flags.to_text(query.flags))
+#          msg +=  ' Question: '+question.to_text()
+#          log_message(tosyslog,msg)
+
         for answer in query.answer:
-          print(str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S')),end='')
-          print(str(' DNS ')+str(get_query_type(dnstap_data.message.type))+str(" "),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port),end='')
-          print(str(' -> '),end='')
-          print(str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port),end='')
-          print(str(' Id: #')+str(query.id),end='')
-          print(str(' Flags: '),end='')
-          print(str(dns.flags.to_text(query.flags)),end='')
-          print(' Answer: '+str(answer).replace('\n',' | '))
+          msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+          #msg +=  str(' DNS')
+          msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+          msg +=  str(' -> ')
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+          msg +=  str(' Id: #')+str(query.id)
+          msg +=  str(' Flags: ')
+          msg +=  str(dns.flags.to_text(query.flags))
+          msg +=  ' Answer: '+str(answer).replace('\n',' | ')
+          log_message(tosyslog,msg)
         if debug:
            print(print_dnsflag_fromhex(query.flags))
            print(query)
 #           var_dump(query)
     else:
         if verbose:
-            print(str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S')),end='')
-            print(str(' DNS ')+str(get_query_type(dnstap_data.message.type))+str(" "),end='')
-            print(str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port),end='')
-            print(str(' -> '),end='')
-            print(str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port))
+            msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+            #msg +=  str(' DNS')
+            msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+            msg +=  str(' -> ')
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+            log_message(tosyslog,msg)
         if debug:
             query = dns.message.from_wire(dnstap_data.message.query_message)
             #print(dnstap_data)
-            print(query)
-#    print()
-#    print()
+            log_message(tosyslog,query)
 
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "hdvf:s:", ["help","debug","verbose","file=","socket="])
-    tapfile = False
-    debug = False
-    verbose = False
-    socketfile = False
-    for o, a in opts:
-        if o == "-d":
-            debug = True
-            print(":::: Debug output enabled")
-        elif o == "-v":
-            verbose = True
-            print(":::: Verbose output enabled")
-        elif o in ("-h", "--help"):
-            usage()
-            sys.exit()
-        elif o in ("-f", "--file"):
-            tapfile = a
-            if not(tapfile):
-               usage()
-        elif o in ("-s", "--socket"):
-            socketfile = a
-            if not(socketfile):
-               usage()
-        else:
-            assert False, "unhandled option"
-except getopt.GetoptError as err:
-    # print help information and exit:
-    print(err) # will print something like "option -a not recognized"
-    usage()
+def main():
 
+    if socketfile:
+        if tosyslog:
+          # Priority: LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG.
+          # Facilities: LOG_KERN, LOG_USER, LOG_MAIL, LOG_DAEMON, LOG_AUTH, LOG_LPR, LOG_NEWS, LOG_UUCP, LOG_CRON, LOG_SYSLOG and LOG_LOCAL0 to LOG_LOCAL7.
+          # Options: LOG_PID, LOG_CONS, LOG_NDELAY, LOG_NOWAIT and LOG_PERROR
+          syslog.openlog('DNStap', logoption=syslog.LOG_PID, facility=syslog.LOG_DAEMON)
+    
+        log_message(tosyslog,"Starting DNStap reader")
 
-if socketfile:
-    try:
-       sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-       sock.bind(socketfile)
-       sock.listen(1)
-       while True:
-          connection, client_address = sock.accept()
-          print("New incoming connection...")
-          try:
-             # Ok, I need Frame Streams handshake code here.
-             # https://www.nlnetlabs.nl/bugs-script/show_bug.cgi?id=741#c15
-             print(">> Waiting READY FRAME")
-             data = connection.recv(262144)
-             if debug:
-               var_dump(data)
-             print("<< Sending ACCEPT FRAME")
-             connection.sendall(b'\x00\x00\x00\x00\x00\x00\x00\x22\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x70\x72\x6f\x74\x6f\x62\x75\x66\x3a\x64\x6e\x73\x74\x61\x70\x2e\x44\x6e\x73\x74\x61\x70')
-             if debug:
-               print(b'\x00\x00\x00\x00\x00\x00\x00\x22\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x70\x72\x6f\x74\x6f\x62\x75\x66\x3a\x64\x6e\x73\x74\x61\x70\x2e\x44\x6e\x73\x74\x61\x70')
-             print(">> Waiting START FRAME")
-             data = connection.recv(262144)
-             start = data
-             if debug:
-               var_dump(data)
-             while True:
-#                print("Reciving data:")
-                data = connection.recv(262144)
-                if data:
-                    b = io.BytesIO(start+data)
-                    if debug:
-                       var_dump(b.read())
-                    for frame in framestream.reader(b):
+        try:
+           sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+           sock.bind(socketfile)
+           sock.listen(1)
+           while True:
+              connection, client_address = sock.accept()
+              log_message(tosyslog,"New incoming connection...")
+              try:
+                 # Ok, I need Frame Streams handshake code here.
+                 # https://www.nlnetlabs.nl/bugs-script/show_bug.cgi?id=741#c15
+                 log_message(tosyslog,">> Waiting READY FRAME")
+                 data = connection.recv(262144)
+                 if debug:
+                    var_dump(data)
+                 log_message(tosyslog,"<< Sending ACCEPT FRAME")
+                 connection.sendall(b'\x00\x00\x00\x00\x00\x00\x00\x22\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x70\x72\x6f\x74\x6f\x62\x75\x66\x3a\x64\x6e\x73\x74\x61\x70\x2e\x44\x6e\x73\x74\x61\x70')
+                 if debug:
+                    print(b'\x00\x00\x00\x00\x00\x00\x00\x22\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x70\x72\x6f\x74\x6f\x62\x75\x66\x3a\x64\x6e\x73\x74\x61\x70\x2e\x44\x6e\x73\x74\x61\x70')
+                 log_message(tosyslog,">> Waiting START FRAME")
+                 data = connection.recv(262144)
+                 start = data
+                 if debug:
+                    var_dump(data)
+                 while True:
+                     data = connection.recv(262144)
+                     if data:
+                         b = io.BytesIO(start+data)
+                     if debug:
+                        var_dump(b.read())
+                     for frame in framestream.reader(b):
                        parse_frame(frame)
-                else:
-                    print('antani!!!')
+                 else:
+                     log_message(tosyslog,'antani!!!')
 #                    connection.close()
 #                    break
-          finally:
-            # Clean up the connection
-            #connection.close()
-            print("connection lost?")
-    finally:
-      print("Closing socket")
-      connection.close()
-      sock.close()
-      os.unlink(socketfile)
+              finally:
+                 # Clean up the connection
+                 log_message(tosyslog,"connection lost")
+                 connection.close()
+        finally:
+           log_message(tosyslog,"Closing socket")
+           sock.close()
+           os.unlink(socketfile)
+           if tosyslog:
+               syslog.closelog()
 
-elif tapfile:
-    for frame in framestream.reader(open(tapfile, "rb")):
-        parse_frame(frame)
+    elif tapfile:
+        for frame in framestream.reader(open(tapfile, "rb")):
+            parse_frame(frame)
+    else:
+       usage()
+
+
+############################## 
+tapfile = False
+debug = False
+verbose = False
+socketfile = False
+tosyslog = False
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "hdvlf:s:", ["help","debug","verbose","to-syslog","file=","socket="])
+  for o, a in opts:
+    if o == "-d":
+       debug = True
+       print(":::: Debug output enabled")
+    elif o == "-v":
+       verbose = True
+       print(":::: Verbose output enabled")
+    elif o in ("-h", "--help"):
+       usage()
+       sys.exit()
+    elif o in ("-l", "--to-syslog"):
+       tosyslog = True
+    elif o in ("-f", "--file"):
+       tapfile = a
+       if not(tapfile):
+          usage()
+    elif o in ("-s", "--socket"):
+       socketfile = a
+       if not(socketfile):
+           usage()
+    else:
+       assert False, "unhandled option"
+except getopt.GetoptError as err:
+  print(err)
+  print("")
+  usage()
+  sys.exit()
+
+if tosyslog:
+  # ok, going in to darkness
+  # https://daemonize.readthedocs.io/en/latest/
+  pid = "/var/run/dnstap.pid"
+  daemon = Daemonize(app="dnstap", pid=pid, action=main,auto_close_fds=True)
+  daemon.start()
 else:
-    usage()
+  main()
+
