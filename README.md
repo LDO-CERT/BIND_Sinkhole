@@ -42,4 +42,4 @@ Edit conf/sinkhole/misp.config.dist before building docker images OR edit
 
 :: DNStap Reader
 
-dnstap_reader contains developing software for read dnstap file (python)
+dnstap_reader contains developing software for read dnstap data (from file or socket)
