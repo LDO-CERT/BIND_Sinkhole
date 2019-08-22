@@ -1,0 +1,5 @@
+# For works need some python libraries
+pip3 install protobuf
+pip3 install var_dump
+pip3 install daemonize
+pip3 install dnspython
