@@ -55,7 +55,19 @@ def usage():
     print('  AD: Authentic Data')
     print('  CD: Checking Disabled')
     print("")
-
+    print("RCODE description:")
+    print('   NOERROR = 0')
+    print('   FORMERR = 1')
+    print('   SERVFAIL = 2')
+    print('   NXDOMAIN = 3')
+    print('   NOTIMP = 4')
+    print('   REFUSED = 5')
+    print('   YXDOMAIN = 6')
+    print('   YXRRSET = 7')
+    print('   NXRRSET = 8')
+    print('   NOTAUTH = 9')
+    print('   NOTZONE = 10')
+    print('   BADVERS = 16')
 
 def print_dnsflag_fromhex(n):
     if n & int('0x8000',16):
@@ -97,11 +109,9 @@ def parse_frame(frame):
 #   https://github.com/dnstap/dnstap.pb/blob/master/dnstap.proto read here !
 #    print(dnstap_data)
 
-    if dnstap_data.message.type == 5: ## CLIENT_QUERY
+## CLIENT_QUERY
+    if dnstap_data.message.type == 5: 
         query = dns.message.from_wire(dnstap_data.message.query_message)
-        #identity = query.identity
-#        var_dump(query)
-
         for question in query.question:
           msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
           #msg +=  str(' DNS')
@@ -110,6 +120,8 @@ def parse_frame(frame):
           msg +=  str(' -> ')
           msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
           msg +=  str(' Id: #')+str(query.id)
+          msg +=  str(' Rcode: ')
+          msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
           msg +=  str(' Flags: ')
           msg +=  str(dns.flags.to_text(query.flags))
           msg +=  ' Question: '+question.to_text()
@@ -118,7 +130,49 @@ def parse_frame(frame):
         if debug:
            print(print_dnsflag_fromhex(query.flags))
            print(query)
-    elif dnstap_data.message.type == 6: ## CLIENT_RESPONSE
+
+## RESOLVER_QUERY
+    elif dnstap_data.message.type == 3: 
+        if verbose:
+          query = dns.message.from_wire(dnstap_data.message.query_message)
+          for question in query.question:
+            msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+            #msg +=  str(' DNS')
+            msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+            msg +=  str(' -> ')
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+            msg +=  str(' Id: #')+str(query.id)
+            msg +=  str(' Rcode: ')
+            msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+            msg +=  str(' Flags: ')
+            msg +=  str(dns.flags.to_text(query.flags))
+            msg +=  ' Question: '+question.to_text()
+            log_message(tosyslog,msg)
+            #print(dnstap_data)
+
+## RESOLVER_RESPONSE
+    elif dnstap_data.message.type == 4: 
+        if verbose:
+          query = dns.message.from_wire(dnstap_data.message.response_message)
+          for answer in query.answer:
+            msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+            #msg +=  str(' DNS')
+            msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+            msg +=  str(' -> ')
+            msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+            msg +=  str(' Id: #')+str(query.id)
+            msg +=  str(' Rcode: ')
+            msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+            msg +=  str(' Flags: ')
+            msg +=  str(dns.flags.to_text(query.flags))
+            msg +=  ' Answer: '+str(answer).replace('\n',' | ')
+            log_message(tosyslog,msg)
+            #print(dnstap_data)
+
+## CLIENT_RESPONSE
+    elif dnstap_data.message.type == 6: 
         query = dns.message.from_wire(dnstap_data.message.response_message)
 
 #        for question in query.question:
@@ -142,6 +196,8 @@ def parse_frame(frame):
           msg +=  str(' -> ')
           msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
           msg +=  str(' Id: #')+str(query.id)
+          msg +=  str(' Rcode: ')
+          msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
           msg +=  str(' Flags: ')
           msg +=  str(dns.flags.to_text(query.flags))
           msg +=  ' Answer: '+str(answer).replace('\n',' | ')
@@ -150,6 +206,7 @@ def parse_frame(frame):
            print(print_dnsflag_fromhex(query.flags))
            print(query)
 #           var_dump(query)
+## OTHER QUERY
     else:
         if verbose:
             msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
@@ -158,7 +215,9 @@ def parse_frame(frame):
             msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
             msg +=  str(' -> ')
             msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+            msg +=  str(' Id: #')+str(query.id)
             log_message(tosyslog,msg)
+            #print(dnstap_data)
         if debug:
             query = dns.message.from_wire(dnstap_data.message.query_message)
             #print(dnstap_data)
