@@ -109,7 +109,7 @@ def parse_frame(frame):
 #   https://github.com/dnstap/dnstap.pb/blob/master/dnstap.proto read here !
 #    print(dnstap_data)
 
-## CLIENT_QUERY
+    ## CLIENT_QUERY
     if dnstap_data.message.type == 5: 
         query = dns.message.from_wire(dnstap_data.message.query_message)
         for question in query.question:
@@ -120,8 +120,9 @@ def parse_frame(frame):
           msg +=  str(' -> ')
           msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
           msg +=  str(' Id: #')+str(query.id)
-          msg +=  str(' Rcode: ')
-          msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+          #msg +=  str(' Rcode: ')
+          #msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+          #msg +=  str(' ')+str(dns.rcode.from_flags(query.flags,query.ednsflags))
           msg +=  str(' Flags: ')
           msg +=  str(dns.flags.to_text(query.flags))
           msg +=  ' Question: '+question.to_text()
@@ -131,7 +132,7 @@ def parse_frame(frame):
            print(print_dnsflag_fromhex(query.flags))
            print(query)
 
-## RESOLVER_QUERY
+    ## RESOLVER_QUERY
     elif dnstap_data.message.type == 3: 
         if verbose:
           query = dns.message.from_wire(dnstap_data.message.query_message)
@@ -143,35 +144,43 @@ def parse_frame(frame):
             msg +=  str(' -> ')
             msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
             msg +=  str(' Id: #')+str(query.id)
-            msg +=  str(' Rcode: ')
-            msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+            #msg +=  str(' Rcode: ')
+            #msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+            #msg +=  str(' ')+str(dns.rcode.from_flags(query.flags,query.ednsflags))
             msg +=  str(' Flags: ')
             msg +=  str(dns.flags.to_text(query.flags))
             msg +=  ' Question: '+question.to_text()
             log_message(tosyslog,msg)
             #print(dnstap_data)
 
-## RESOLVER_RESPONSE
+    ## RESOLVER_RESPONSE
     elif dnstap_data.message.type == 4: 
         if verbose:
           query = dns.message.from_wire(dnstap_data.message.response_message)
+          msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+          #msg +=  str(' DNS')
+          msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+          msg +=  str(' -> ')
+          msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+          msg +=  str(' Id: #')+str(query.id)
+          msg +=  str(' Rcode: ')
+          msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+          #msg +=  str(' ')+str(dns.rcode.from_flags(query.flags,query.ednsflags))
+          msg +=  str(' Flags: ')
+          msg +=  str(dns.flags.to_text(query.flags))
+
           for answer in query.answer:
-            msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
-            #msg +=  str(' DNS')
-            msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
-            msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
-            msg +=  str(' -> ')
-            msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
-            msg +=  str(' Id: #')+str(query.id)
-            msg +=  str(' Rcode: ')
-            msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
-            msg +=  str(' Flags: ')
-            msg +=  str(dns.flags.to_text(query.flags))
             msg +=  ' Answer: '+str(answer).replace('\n',' | ')
-            log_message(tosyslog,msg)
+
+          for auth in query.authority:
+            msg +=  ' Authority: '+str(auth).replace('\n',' | ')
+
+
+          log_message(tosyslog,msg)
             #print(dnstap_data)
 
-## CLIENT_RESPONSE
+    ## CLIENT_RESPONSE
     elif dnstap_data.message.type == 6: 
         query = dns.message.from_wire(dnstap_data.message.response_message)
 
@@ -188,25 +197,34 @@ def parse_frame(frame):
 #          msg +=  ' Question: '+question.to_text()
 #          log_message(tosyslog,msg)
 
+        msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
+        #msg +=  str(' DNS')
+        msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
+        msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
+        msg +=  str(' -> ')
+        msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
+        msg +=  str(' Id: #')+str(query.id)
+        msg +=  str(' Rcode: ')
+        msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
+        #msg +=  str(' ')+str(dns.rcode.from_flags(query.flags,query.ednsflags))
+        msg +=  str(' Flags: ')
+        msg +=  str(dns.flags.to_text(query.flags))
+
         for answer in query.answer:
-          msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.response_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
-          #msg +=  str(' DNS')
-          msg +=  ' '+str(get_query_type(dnstap_data.message.type))+str(" ")
-          msg +=  str(ipaddress.ip_address(dnstap_data.message.query_address))+str(':')+str(dnstap_data.message.query_port)
-          msg +=  str(' -> ')
-          msg +=  str(ipaddress.ip_address(dnstap_data.message.response_address))+str(':')+str(dnstap_data.message.response_port)
-          msg +=  str(' Id: #')+str(query.id)
-          msg +=  str(' Rcode: ')
-          msg +=  str(dns.rcode.to_text(dns.rcode.from_flags(query.flags,query.ednsflags)))
-          msg +=  str(' Flags: ')
-          msg +=  str(dns.flags.to_text(query.flags))
           msg +=  ' Answer: '+str(answer).replace('\n',' | ')
-          log_message(tosyslog,msg)
+
+        for auth in query.authority:
+          msg +=  ' Authority: '+str(auth).replace('\n',' | ')
+
+
+        log_message(tosyslog,msg)
+
         if debug:
            print(print_dnsflag_fromhex(query.flags))
            print(query)
 #           var_dump(query)
-## OTHER QUERY
+
+   ## OTHER QUERY
     else:
         if verbose:
             msg = str(datetime.datetime.fromtimestamp(dnstap_data.message.query_time_sec).strftime('%Y-%m-%d %H:%M:%S'))
