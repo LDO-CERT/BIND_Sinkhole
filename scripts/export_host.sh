@@ -4,6 +4,9 @@ source /etc/bind/misp.config
 
 # non toccare!! :-)
 DOMAIN_URL="/attributes/text/download/domain"
+### Domain URL withtout domain in warninglist
+DOMAIN_URL="/attributes/text/download/domain/null/null/null/null/null/null/true"
+
 PCOUNT=`pgrep -xc export_host.sh`
 
 if [ "$PCOUNT" -gt "1" ]; then
