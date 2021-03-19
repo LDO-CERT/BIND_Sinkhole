@@ -41,6 +41,9 @@ options {
 	dnstap-identity "tigger";
 	dnstap-version "bind-9.11";
 
+	// sinkhole
+	response-policy { zone "sinkhole"; }
+
 };
 
 logging {

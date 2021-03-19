@@ -7,6 +7,9 @@ DOMAIN_URL="/attributes/text/download/domain"
 ### Domain URL withtout domain in warninglist
 DOMAIN_URL="/attributes/text/download/domain/null/null/null/null/null/null/true"
 
+DEST_FILE="/etc/bind/sinkhole.db"
+
+
 PCOUNT=`pgrep -xc export_host.sh`
 
 if [ "$PCOUNT" -gt "1" ]; then
@@ -22,17 +25,30 @@ else
 
         tot=0;
 
-        echo "" > /etc/bind/named.conf.sinkhole.swp
+        echo "" > $DEST_FILE.swp
+	echo '
+$TTL    604800
+@       IN      SOA     localhost. root.localhost. (
+                          2         ; Serial
+                     604800         ; Refresh
+                      86400         ; Retry
+                    2419200         ; Expire
+                     604800 )       ; Negative Cache TTL
+
+@       IN      NS      localhost.' > $DEST_FILE.swp
+
 
         for i in $domain; do
-                echo "zone \"$i\" {type master; notify no; file \"/etc/bind/blockeddomains.db\";};" >> /etc/bind/named.conf.sinkhole.swp
+#                echo "zone \"$i\" {type master; notify no; file \"/etc/bind/blockeddomains.db\";};" >> $DEST_FILE.swp
+	        echo "$i A 127.0.0.2"  >> $DEST_FILE.swp
+	        echo "*.$i A 127.0.0.2"  >> $DEST_FILE.swp
                 tot=$((tot+1))
         done
 
         logger -it misp_exporter "Exported $tot domains";
 
-        cp /etc/bind/named.conf.sinkhole /etc/bind/named.conf.sinkhole.save
-        mv /etc/bind/named.conf.sinkhole.swp /etc/bind/named.conf.sinkhole
+        cp $DEST_FILE $DEST_FILE.save
+        mv $DEST_FILE.swp $DEST_FILE
 
 fi
 

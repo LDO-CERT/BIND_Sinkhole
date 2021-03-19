@@ -6,4 +6,7 @@
 // organization
 //include "/etc/bind/zones.rfc1918";
 
+
+// se si commenta questa riga bisogna modificare anche il file named.conf.options
+// sezione response-policy
 include "/etc/bind/named.conf.sinkhole";

@@ -1,12 +1,14 @@
 #!/bin/bash
 
-fname="/etc/bind/named.conf.sinkhole"
-fhash="/etc/bind/.named.conf.sinkhole.md5"
+#fname="/etc/bind/named.conf.sinkhole"
+#fhash="/etc/bind/.named.conf.sinkhole.md5"
+fname="/etc/bind/sinkhole.db"
+fhash="/etc/bind/sinkhole.db.md5"
 
 if [ ! -f $fhash ]; then
         if [ -f $fname ]; then
                 md5sum $fname > $fhash
-                /usr/sbin/rndc reload 1>/dev/null 2>/dev/null
+                /usr/sbin/rndc reload sinkhole 1>/dev/null 2>/dev/null
         else
                 echo "$fname not found"
                 exit 1
@@ -27,7 +29,7 @@ if ! md5sum --status -c $fhash; then
                 echo $ERR
                 logger -it "reload_bind" "WARNING: Error are present in config file, reloading could have problems"
         fi
-        /usr/sbin/rndc reload 1>/dev/null 2>/dev/null
+        /usr/sbin/rndc reload sinkhole 1>/dev/null 2>/dev/null
         /usr/sbin/rndc flush
 else
         logger -it "reload_bind" "nothing to do..."
