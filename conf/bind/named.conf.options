@@ -42,7 +42,8 @@ options {
 	dnstap-version "bind-9.11";
 
 	// sinkhole
-	response-policy { zone "sinkhole"; }
+	//check-names master warn;;
+	response-policy { zone "sinkhole"; };
 
 };
 
