@@ -1,5 +1,6 @@
 zone "rpz" {
-      type master;
+       type master;
+       check-names ignore;
        file "/etc/bind/sinkhole.db";
 };
 
