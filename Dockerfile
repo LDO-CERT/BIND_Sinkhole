@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-MAINTAINER "luca.memini@leonardocompany.com"
+MAINTAINER "luca@memini.it"
 LABEL Version="1.1"
 LABEL Description="Bind Sinkhole from MISP Docker Image (dnstap enabled)"
 
