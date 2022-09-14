@@ -2,7 +2,7 @@
 
 Bind Sinkhole from MISP - Docker Image (bind with dnstap enabled)
 
--- Luca Memini <luca.memini@leonardocompany.com>
+-- Luca Memini <luca@memini.it>
 
 Based on idea from two docker https://github.com/sameersbn/docker-bind and https://github.com/Benster900/ThunderLemon/ 
 and sinkhole domain list from MISP https://github.com/MISP/MISP
